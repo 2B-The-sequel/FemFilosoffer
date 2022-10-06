@@ -5,89 +5,65 @@ namespace FemFilosoffer
 {
     internal class Philosopher
     {
-        private readonly object leftChopstick;
-        private readonly object rightChopstick;
+        private readonly Chopstick leftChopstick;
+        private readonly Chopstick rightChopstick;
 
         private readonly string name;
         private int eatCount = 0;
 
-        public Philosopher(string name, object left, object right)
+        private readonly Thread thread;
+
+        public Philosopher(string name, Chopstick left, Chopstick right)
         {
             this.name = name;
             leftChopstick = left;
             rightChopstick = right;
+
+            thread = new(Live);
+            thread.Start();
+        }
+
+        public void Live()
+        {
+            while (eatCount < 10)
+            {
+                bool left = leftChopstick.Take();
+                Thread.Sleep(10);
+                if (left)
+                {
+                    bool right = rightChopstick.Take();
+                    
+                    if (right)
+                    {
+                        Eat();
+                        leftChopstick.HandIn();
+                        rightChopstick.HandIn();
+                    }
+                }
+                else
+                    leftChopstick.HandIn();
+
+                Rest();
+            }
+
         }
 
         public void Eat()
         {
-            while (eatCount < 10)
-            {
-                Random random = new();
-                TimeSpan timeout = TimeSpan.FromMilliseconds(random.Next(0,100));
-                
-                bool leftTaken = false;
-                bool rightTaken = false;
-                
-                // TRY LOCK LEFT
-                try
-                {
-                    Monitor.TryEnter(leftChopstick, timeout, ref leftTaken);
-                    if (leftTaken)
-                    {
-                        Thread.Sleep(500);
-
-                        // TRY LOCK RIGHT
-                        try
-                        {
-                            Monitor.TryEnter(rightChopstick, timeout, ref rightTaken);
-                            if (rightTaken)
-                            {
-                                // EAT
-                                eatCount++;
-                                Thread.Sleep(10);
-                                Console.WriteLine($"{name} has eaten: {eatCount} times");
-                            }
-                        }
-                        finally
-                        {
-                            // UNLOCK RIGHT
-                            if (rightTaken)
-                            {
-                                Monitor.Exit(rightChopstick);
-                            }
-                        }
-                    }
-                }
-                finally
-                {
-                    // UNLOCK LEFT
-                    if (leftTaken)
-                    {
-                        Monitor.Exit(leftChopstick);
-                    }
-                }
-
-                // SLEEP
-                Thread.Sleep(10);
-            }
-
+            eatCount++;
+            Thread.Sleep(10);
+            Console.WriteLine($"{name} has eaten: {eatCount} times");
         }
 
-        /*public void Eat()
+        public void Rest()
         {
-            while (eatCount < 10) {
-                lock (leftChopstick)
-                {
-                    Thread.Sleep(500);
-                    lock (rightChopstick)
-                    {
-                        eatCount++;
-                        Thread.Sleep(10);
-                        Console.WriteLine($"{name} has eaten: {eatCount} times");
-                    }
-                }
-                Thread.Sleep(10);
-            }
-        }*/
+            Random rnd = new();
+            Thread.Sleep(rnd.Next(0,100));
+        }
+
+        public void WaitUntilDone()
+        {
+            thread.Join();
+        }
     }
 }

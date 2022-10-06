@@ -1,26 +1,23 @@
 ﻿using System;
-using System.Threading;
 using System.Diagnostics;
 
 namespace FemFilosoffer
 {
     public class Program
     {
-        private static Thread[] threads;
-        private static Philosopher[] philosophers;
-        private static readonly string[] names = { "Kevin", "Peter", "Kasper", "Martin", "Allan" };
-        private static object[] chopsticks;
+        private readonly string[] names = { "Kevin", "Peter", "Kasper", "Martin", "Allan" };
+        private Philosopher[] philosophers;
+        private Chopstick[] chopsticks;
 
         public static void Main(string[] args)
         {
-            chopsticks = new object[names.Length];
-            threads = new Thread[names.Length];
+            Program program = new();
+            program.Run(args);
+        }
 
-            for (int i = 0; i < names.Length; i++)
-            {
-                chopsticks[i] = new object();
-            }
-
+        public void Run(string[] args)
+        {
+            chopsticks = GenerateChopsticks(names.Length);
             philosophers = new Philosopher[names.Length];
 
             Stopwatch watch = new();
@@ -29,17 +26,15 @@ namespace FemFilosoffer
             watch.Start();
             for (int i = 0; i < names.Length; i++)
             {
-                object leftChopstick = chopsticks[i == 0 ? names.Length-1 : i-1];
-                object rightChopstick = chopsticks[i];
+                Chopstick leftChopstick = chopsticks[i == 0 ? names.Length - 1 : i - 1];
+                Chopstick rightChopstick = chopsticks[i];
 
                 philosophers[i] = new Philosopher(names[i], leftChopstick, rightChopstick);
-                threads[i] = new(philosophers[i].Eat);
-                threads[i].Start();
             }
 
-            for (int i = 0; i < threads.Length; i++)
+            for (int i = 0; i < philosophers.Length; i++)
             {
-                threads[i].Join();
+                philosophers[i].WaitUntilDone();
             }
 
             watch.Stop();
@@ -49,11 +44,11 @@ namespace FemFilosoffer
             watch.Restart();
             for (int i = 0; i < names.Length; i++)
             {
-                object leftChopstick = chopsticks[i == 0 ? names.Length - 1 : i - 1];
-                object rightChopstick = chopsticks[i];
+                Chopstick leftChopstick = chopsticks[i == 0 ? names.Length - 1 : i - 1];
+                Chopstick rightChopstick = chopsticks[i];
 
                 philosophers[i] = new Philosopher(names[i], leftChopstick, rightChopstick);
-                philosophers[i].Eat();
+                philosophers[i].WaitUntilDone();
             }
             watch.Stop();
             long sequentialTime = watch.ElapsedMilliseconds;
@@ -63,6 +58,16 @@ namespace FemFilosoffer
             Console.WriteLine("Sequential: " + sequentialTime);
 
             Console.ReadLine();
+        }
+
+        private static Chopstick[] GenerateChopsticks(int count)
+        {
+            Chopstick[] chopsticks = new Chopstick[count];
+            for (int i = 0; i < chopsticks.Length; i++)
+            {
+                chopsticks[i] = new Chopstick();
+            }
+            return chopsticks;
         }
     }
 }
